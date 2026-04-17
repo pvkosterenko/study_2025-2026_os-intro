@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru-RU">
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="Костеренко Полина">
+  <title>Сеть в UNIX. Обзор стратегий маршрутизации и маршрутизаторов</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reset.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+  <style>
+    .reveal .sourceCode { overflow: visible; }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .reveal pre {
+      box-shadow: none;
+      font-size: 0.8em;
+    }
+    .reveal code {
+      background: #f3f3f7;
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/beige.css" id="theme">
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<!-- Титульный слайд -->
+<section id="title-slide">
+  <h1 class="title">Сеть в UNIX. Обзор стратегий маршрутизации и маршрутизаторов</h1>
+  <p class="author">Костеренко Полина</p>
+  <p class="institute">Российский университет дружбы народов, Москва, Россия</p>
+  <p class="date">17 апреля 2026</p>
+</section>
+
+<!-- Информация о докладчике -->
+<section>
+  <section id="info">
+    <h1>Информация</h1>
+  </section>
+  <section id="speaker">
+    <h2>Докладчик</h2>
+    <div class="columns" data-align="center">
+      <div class="column" style="width:70%;">
+        <ul>
+          <li>Костеренко Полина</li>
+          <li>Студент 1 курса</li>
+          <li>Факультет физико-математических и естественных наук</li>
+          <li>Российский университет дружбы народов</li>
+          <li><a href="mailto:1132242912@rudn.ru">1132242912@rudn.ru</a></li>
+        </ul>
+      </div>
+      <div class="column" style="width:30%;"></div>
+    </div>
+  </section>
+</section>
+
+<!-- Введение -->
+<section>
+  <h2>Введение</h2>
+  <p>Linux — одна из ведущих серверных платформ. Маршрутизация в Linux позволяет гибко управлять потоками данных, превращая обычный компьютер в мощный сетевой маршрутизатор.</p>
+  <p>В докладе рассматриваются:</p>
+  <ul>
+    <li>Стратегии маршрутизации (статическая, динамическая, политики)</li>
+    <li>Протоколы (RIP, OSPF, BGP)</li>
+    <li>Инструменты управления (iproute2)</li>
+    <li>Программные маршрутизаторы (BIRD, FRRouting)</li>
+  </ul>
+</section>
+
+<!-- Основные стратегии маршрутизации -->
+<section>
+  <section>
+    <h2>Стратегии маршрутизации в Linux</h2>
+    <ul>
+      <li>Статическая маршрутизация</li>
+      <li>Динамическая маршрутизация</li>
+      <li>Маршрутизация на основе политик (Policy Routing)</li>
+    </ul>
+  </section>
+
+  <!-- Статическая маршрутизация -->
+  <section>
+    <h3>Статическая маршрутизация</h3>
+    <p>Маршруты добавляются вручную администратором.</p>
+    <p><strong>Преимущества:</strong> простота, предсказуемость, нет служебного трафика.</p>
+    <p><strong>Недостатки:</strong> нет адаптации при сбоях, сложность масштабирования.</p>
+    <pre><code>ip route add 192.168.2.0/24 via 192.168.1.1 dev eth0</code></pre>
+    <p>Применяется в небольших сетях и для подключения к VPN.</p>
+  </section>
+
+  <!-- Динамическая маршрутизация: обзор -->
+  <section>
+    <h3>Динамическая маршрутизация</h3>
+    <p>Маршрутизаторы обмениваются информацией автоматически, адаптируясь к изменениям.</p>
+    <p>Основные протоколы: RIP, OSPF, BGP.</p>
+  </section>
+
+  <!-- Протокол RIP -->
+  <section>
+    <h4>RIP (Routing Information Protocol)</h4>
+    <ul>
+      <li>Дистанционно-векторный протокол</li>
+      <li>Метрика — количество переходов (макс. 15)</li>
+      <li>Простая настройка, но медленная сходимость</li>
+      <li>Подходит для малых сетей</li>
+    </ul>
+  </section>
+
+  <!-- Протокол OSPF -->
+  <section>
+    <h4>OSPF (Open Shortest Path First)</h4>
+    <ul>
+      <li>Протокол состояния каналов (link-state)</li>
+      <li>Быстрая сходимость, поддержка CIDR</li>
+      <li>Разделение на области (areas)</li>
+      <li>Используется в корпоративных сетях</li>
+    </ul>
+  </section>
+
+  <!-- Протокол BGP -->
+  <section>
+    <h4>BGP (Border Gateway Protocol)</h4>
+    <ul>
+      <li>Маршрутизация между автономными системами (AS)</li>
+      <li>Основа Интернета</li>
+      <li>Использует политики (атрибуты AS_PATH, LOCAL_PREF и др.)</li>
+      <li>Работает поверх TCP (порт 179)</li>
+    </ul>
+  </section>
+
+  <!-- Policy Routing -->
+  <section>
+    <h3>Маршрутизация на основе политик</h3>
+    <p>Решение принимается не только по IP назначения, но и по:</p>
+    <ul>
+      <li>IP источника</li>
+      <li>Входящему интерфейсу</li>
+      <li>Портам, протоколу</li>
+      <li>Маркировке пакета (fwmark)</li>
+    </ul>
+    <p>Реализуется через несколько таблиц маршрутизации и команду <code>ip rule</code>.</p>
+    <pre><code>ip rule add fwmark 1 table 100</code></pre>
+  </section>
+</section>
+
+<!-- Инструменты управления -->
+<section>
+  <section>
+    <h2>Инструменты управления маршрутизацией</h2>
+  </section>
+  <section>
+    <h3>Устаревший пакет net-tools</h3>
+    <ul>
+      <li><code>ifconfig</code>, <code>route</code>, <code>netstat</code></li>
+      <li>Не поддерживает современные функции ядра</li>
+      <li>Не рекомендуется к использованию</li>
+    </ul>
+    <pre><code>route add -net 10.0.0.0 netmask 255.0.0.0 gw 192.168.1.1</code></pre>
+  </section>
+  <section>
+    <h3>Современный пакет iproute2</h3>
+    <ul>
+      <li>Стандарт де-факто для Linux</li>
+      <li>Единая утилита <code>ip</code></li>
+      <li>Поддержка множества таблиц и политик</li>
+    </ul>
+    <pre><code>ip route show
+ip route add 172.16.0.0/12 via 10.0.0.1
+ip route add default via 192.168.1.1</code></pre>
+  </section>
+</section>
+
+<!-- Linux как маршрутизатор -->
+<section>
+  <section>
+    <h2>Linux как маршрутизатор</h2>
+    <p>Для превращения Linux в маршрутизатор необходимо:</p>
+    <ol>
+      <li>Включить IP-форвардинг: <code>net.ipv4.ip_forward = 1</code></li>
+      <li>Установить демон динамической маршрутизации (BIRD или FRRouting)</li>
+    </ol>
+  </section>
+  <section>
+    <h3>BIRD Internet Routing Daemon</h3>
+    <ul>
+      <li>Высокая производительность, поддержка RIP, OSPF, BGP</li>
+      <li>Гибкий язык конфигурации</li>
+      <li>Используется на точках обмена трафиком (IXP)</li>
+    </ul>
+  </section>
+  <section>
+    <h3>FRRouting (FRR)</h3>
+    <ul>
+      <li>Форк Quagga, наиболее функциональный</li>
+      <li>Модульная архитектура (zebra, bgpd, ospfd)</li>
+      <li>Интерфейс vtysh в стиле Cisco</li>
+      <li>Поддержка многих протоколов: BGP, OSPF, ISIS, PIM</li>
+    </ul>
+  </section>
+</section>
+
+<!-- Практические сценарии -->
+<section>
+  <h2>Практические сценарии</h2>
+  <ul>
+    <li>Домашняя/офисная сеть: статический шлюз</li>
+    <li>Мультихоминг: резервирование и балансировка через policy routing</li>
+    <li>VPN: маршруты в туннель</li>
+    <li>Дата-центр: OSPF для автоматического построения маршрутов</li>
+    <li>Глобальная BGP-маршрутизация с анонсированием собственных префиксов</li>
+  </ul>
+</section>
+
+<!-- Заключение -->
+<section>
+  <h2>Заключение</h2>
+  <ul>
+    <li>Linux предоставляет три стратегии: статическая, динамическая, политики</li>
+    <li>Протоколы RIP, OSPF, BGP покрывают разные масштабы сетей</li>
+    <li>Инструмент iproute2 — современный стандарт управления</li>
+    <li>BIRD и FRRouting превращают Linux в полноценный маршрутизатор</li>
+  </ul>
+  <p>Глубокое понимание этих механизмов необходимо системным администраторам и сетевым инженерам.</p>
+</section>
+
+<!-- Литература -->
+<section>
+  <h2>Список литературы</h2>
+  <ul style="font-size: 0.8em;">
+    <li>Официальная документация iproute2 (man ip, ip-route)</li>
+    <li>BIRD Internet Routing Daemon Project: <a href="https://bird.network.cz/">https://bird.network.cz/</a></li>
+    <li>FRRouting Project: <a href="https://frrouting.org/">https://frrouting.org/</a></li>
+    <li>Linux Advanced Routing & Traffic Control HOWTO: <a href="https://lartc.org/">https://lartc.org/</a></li>
+    <li>Doyle J., Carroll J. "Routing TCP/IP, Volume 1" (Cisco Press)</li>
+  </ul>
+</section>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/notes/notes.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/search/search.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/plugin/zoom/zoom.js"></script>
+
+  <script>
+    Reveal.initialize({
+      controls: true,
+      progress: true,
+      hash: true,
+      center: true,
+      transition: 'slide',
+      plugins: [ RevealNotes, RevealSearch, RevealZoom ]
+    });
+  </script>
+</body>
+</html>
